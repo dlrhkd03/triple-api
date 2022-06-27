@@ -6,5 +6,6 @@
     <typeAliases>
         <typeAlias type="com.triple.travelers.event.vo.User" alias="user"/>
         <typeAlias type="com.triple.travelers.event.vo.Event" alias="event"/>
+        <typeAlias type="com.triple.travelers.event.vo.Review" alias="review"/>
     </typeAliases>
 </configuration>

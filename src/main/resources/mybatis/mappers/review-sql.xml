@@ -3,40 +3,23 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.triple.travelers.event.dao.ReviewEventDao">
-    <select id="selectEventListByPlace" resultType="event">
+<mapper namespace="com.triple.travelers.event.dao.ReviewDao">
+
+    <select id="selectReview" resultType="String">
         select *
-        from EVENT_TB
-        where place_id = #{place_id}
+        from mileage.REVIEW_TB
+        where user_id = #{user_id}
+          and place_id = #{place_id};
     </select>
 
-    <select id="selectEventByReviewAndUserAndPlace" resultType="event">
-        select *
-        from EVENT_TB
-        where review_id = #{review_id}
-          and user_id = #{user_id}
-          and place_id = #{place_id}
-    </select>
-
-    <insert id="insertEvent" parameterType="event">
-        insert into EVENT_TB (type, action, review_id, content, photo_url, user_id, place_id)
-        values (#{type}, #{action}, #{review_id}, #{content}, #{photo_url}, #{user_id}, #{place_id})
+    <insert id="insertUser" parameterType="review">
+        insert into mileage.REVIEW_TB (review_id, user_id, place_id)
+        VALUES (#{review_id}, #{user_id}, #{place_id})
     </insert>
 
-    <update id="updateEvent" parameterType="event">
-        update EVENT_TB
-        set content=#{content},
-            photo_url=#{photo_url}
-        where review_id = #{review_id}
-          and user_id = #{user_id}
-          and place_id = #{place_id}
-    </update>
-
-    <delete id="deleteEvent" parameterType="String">
+    <delete id="deleteReview" parameterType="String">
         delete
-        from EVENT_TB
-        where review_id = #{review_id}
-          and user_id = #{user_id}
-          and place_id = #{place_id}
+        from mileage.REVIEW_TB
+        where review_id = #{reivew_id}
     </delete>
 </mapper>

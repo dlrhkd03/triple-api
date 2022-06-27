@@ -1,4 +1,4 @@
-package com.triple.travelers.mileage;
+package com.triple.travelers.event;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

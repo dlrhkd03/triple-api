@@ -13,4 +13,7 @@ public class EventDto {
     private String review_id;
     private String user_id;
     private String place_id;
+    private int bonus_point;
+    private int content_point;
+    private int photo_point;
 }

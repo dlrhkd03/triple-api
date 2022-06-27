@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.triple.travelers.event.dao.UserDao">
+
+    <select id="selectUser" resultType="user">
+        select *
+        from mileage.USER_TB
+        where user_id = #{user_id};
+    </select>
+
+    <update id="updatePoint" parameterType="user">
+        update mileage.USER_TB
+        set point=#{point}
+        where user_id = #{user_id}
+    </update>
+
+    <insert id="createUser" parameterType="user">
+        insert into mileage.USER_TB
+            (user_id, point)
+        VALUES (#{user_id}, #{point})
+    </insert>
+
+    <delete id="deleteUser" parameterType="String">
+        delete from mileage.USER_TB
+        where user_id = #{user_id}
+    </delete>
+</mapper>

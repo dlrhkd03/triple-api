@@ -1,6 +1,6 @@
 package com.triple.travelers.event.controller;
 
-import com.triple.travelers.event.dto.EventDto;
+import com.triple.travelers.event.exception.EventException;
 import com.triple.travelers.event.service.logic.ReviewEventServiceLogic;
 import com.triple.travelers.event.service.logic.UserServiceLogic;
 import com.triple.travelers.event.vo.Event;
@@ -8,6 +8,9 @@ import com.triple.travelers.event.vo.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import static com.triple.travelers.event.exception.EventErrorCode.NO_ACTION;
+import static com.triple.travelers.event.exception.EventErrorCode.NO_TYPE;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,8 +29,8 @@ public class EventController {
     }
 
     @PostMapping("/events")
-    public EventDto OccurredEvent(
-            @RequestBody Event request
+    public Event OccurredEvent(
+            @RequestBody com.triple.travelers.event.vo.Event request
     ) {
         log.info("event occur type:{} action:{}", request.getType(), request.getAction());
 
@@ -36,11 +39,11 @@ public class EventController {
                 return responseReviewEvent(request);
             default:
                 //없는 이벤트 요청시 런타임 에러
-                throw new RuntimeException();
+                throw new EventException(NO_TYPE);
         }
     }
 
-    public EventDto responseReviewEvent(Event request) {
+    public Event responseReviewEvent(com.triple.travelers.event.vo.Event request) {
         switch (request.getAction()) {
             case "ADD":
                 return reviewEventService.add(request);
@@ -50,7 +53,7 @@ public class EventController {
                 return reviewEventService.delete(request);
             default:
                 //없는 액션 요청시 런타임 에러
-                throw new RuntimeException();
+                throw new EventException(NO_ACTION);
         }
     }
 }

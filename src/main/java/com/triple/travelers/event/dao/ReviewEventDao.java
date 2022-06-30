@@ -9,9 +9,11 @@ import java.util.List;
 @Mapper
 @Repository
 public interface ReviewEventDao {
-    List<Event> selectEventListByPlace(String place_id);
+    List<Event> selectEvent(String user_id, String review_id);
 
     void insertEvent(Event event);
 
     Event selectRecentEvent(Event event);
+
+    void deleteEvent(String user_id, String review_id);
 }

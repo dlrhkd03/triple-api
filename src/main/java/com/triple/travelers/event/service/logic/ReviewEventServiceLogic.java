@@ -3,7 +3,8 @@ package com.triple.travelers.event.service.logic;
 import com.triple.travelers.event.dao.ReviewDao;
 import com.triple.travelers.event.dao.ReviewEventDao;
 import com.triple.travelers.event.dao.UserDao;
-import com.triple.travelers.event.dto.EventDto;
+import com.triple.travelers.event.exception.EventException;
+import com.triple.travelers.event.exception.ReviewException;
 import com.triple.travelers.event.service.ReviewEventService;
 import com.triple.travelers.event.vo.Event;
 import com.triple.travelers.event.vo.Review;
@@ -13,6 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.triple.travelers.event.exception.EventErrorCode.NO_USER;
+import static com.triple.travelers.event.exception.ReviewErrorCode.NO_REVIEW;
+import static com.triple.travelers.event.exception.ReviewErrorCode.USER_ID_REVIEW_ID_NOT_MATCHED;
+
 @RequiredArgsConstructor
 @Slf4j
 @Service
@@ -20,22 +25,12 @@ public class ReviewEventServiceLogic implements ReviewEventService {
     private final UserDao userDao;
     private final ReviewEventDao reviewEventDao;
     private final ReviewDao reviewDao;
-    //리뷰 테이블과 연결된 dao 있다고 가정
-    //private final ReviewDao reviewDao;
 
     @Transactional
     @Override
-    public EventDto add(Event request) {
+    public Event add(Event request) {
         //validation
-
-        //리뷰가 작성됨
-        reviewDao.insertReview(
-                Review.builder()
-                        .review_id(request.getReview_id())
-                        .place_id(request.getPlace_id())
-                        .user_id(request.getUser_id())
-                        .build()
-        );
+        validation(request);
 
         int bonus_point = 0;
         int content_point = 0;
@@ -43,7 +38,7 @@ public class ReviewEventServiceLogic implements ReviewEventService {
 
         //1. 리뷰테이블에 리뷰 존재 확인
         //place_id가 같고 user_id가 다르다는 조건으로 조회해서 리뷰가 있는지 확인
-        boolean notExisted = reviewDao.selectReview(request.getUser_id(), request.getPlace_id()) == null;
+        boolean notExisted = reviewDao.selectReviewByUserAndPlace(request.getUser_id(), request.getPlace_id()) == null;
 
         //1-1. 리뷰가 없으면 최초 리뷰로 확인 / 보너스 포인트 +1
         if (notExisted) bonus_point = 1;
@@ -65,13 +60,14 @@ public class ReviewEventServiceLogic implements ReviewEventService {
         int changePoint = bonus_point + content_point + photo_point;
         changeUserPoint(request, changePoint, bonus_point, content_point, photo_point);
 
-        return getBuildEventDto(request);
+        return getBuildEvent(request, bonus_point, content_point, photo_point);
     }
 
     @Transactional
     @Override
-    public EventDto mod(Event request) {
-
+    public Event mod(Event request) {
+        //validation
+        validation(request);
 
         //1. 이 유저의 가장 최근 리뷰 이벤트 조회
         Event recentEvent = reviewEventDao.selectRecentEvent(request);
@@ -96,16 +92,14 @@ public class ReviewEventServiceLogic implements ReviewEventService {
         int changePoint = photo_point - recentEvent.getPhoto_point();
         changeUserPoint(request, changePoint, bonus_point, content_point, photo_point);
 
-        return getBuildEventDto(request);
+        return getBuildEvent(request, bonus_point, content_point, photo_point);
     }
 
     @Transactional
     @Override
-    public EventDto delete(Event request) {
+    public Event delete(Event request) {
         //validation
-
-        //리뷰가 삭제됨
-        reviewDao.deleteReview(request.getUser_id());
+        userValidation(request.getUser_id());
 
         //1. 이 유저의 가장 최근 리뷰 이벤트 조회
         Event recentEvent = reviewEventDao.selectRecentEvent(request);
@@ -117,7 +111,26 @@ public class ReviewEventServiceLogic implements ReviewEventService {
         int changePoint = -(recentEvent.getBonus_point() + recentEvent.getPhoto_point() + recentEvent.getPhoto_point());
         changeUserPoint(request, changePoint, 0, 0, 0);
 
-        return getBuildEventDto(request);
+        return getBuildEvent(request, 0, 0, 0);
+    }
+
+    private void validation(Event request) {
+        userValidation(request.getUser_id());
+
+        Review review = reviewDao.selectReviewById(request.getReview_id());
+        if (review == null) {
+            throw new ReviewException(NO_REVIEW);
+        }
+
+        if (!review.getUser_id().equals(request.getUser_id())) {
+            throw new ReviewException(USER_ID_REVIEW_ID_NOT_MATCHED);
+        }
+    }
+
+    private void userValidation(String user_id) {
+        if (userDao.selectUser(user_id) == null) {
+            throw new EventException(NO_USER);
+        }
     }
 
     private void createEvent(Event request, int bonus_point, int content_point, int photo_point) {
@@ -139,16 +152,16 @@ public class ReviewEventServiceLogic implements ReviewEventService {
                 request.getUser_id(), bonus_point, content_point, photo_point, beforeUserPoint, afterUserPoint);
     }
 
-    private EventDto getBuildEventDto(Event request) {
-        return EventDto.builder()
+    private Event getBuildEvent(Event request, int bonus_point, int content_point, int photo_point) {
+        return Event.builder()
                 .type(request.getType())
                 .action(request.getAction())
                 .user_id(request.getUser_id())
                 .place_id(request.getPlace_id())
                 .review_id(request.getReview_id())
-                .bonus_point(request.getBonus_point())
-                .content_point(request.getContent_point())
-                .photo_point(request.getPhoto_point())
+                .bonus_point(bonus_point)
+                .content_point(content_point)
+                .photo_point(photo_point)
                 .build();
     }
 }

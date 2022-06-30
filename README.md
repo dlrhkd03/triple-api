@@ -21,7 +21,8 @@ spring.datasource.password=12345678
 **DB 개념적 설계**
 
 전체적인 프로세서 구상
-API 작성시 필요한 DB는 사용자테이블, 리뷰이벤트테이블, 리뷰테이블
+API 작성시 필요한 DB는 사용자테이블, 리뷰이벤트테이블, 
+리뷰테이블**(이미 만들어진 리뷰테이블 사용할 예정이지만, 직관적으로 테스트하기위해 간단한 리뷰테이블 생성)**
 
 * 이벤트DB 구성을 작성
 
@@ -91,12 +92,15 @@ CREATE TABLE EVENT_TB (
 CREATE TABLE REVIEW_TB (
 	review_id varchar(36) primary key,
   user_id varchar(36) not null,
-  place_id varchar(36) not null
+  place_id varchar(36) not null,
+  status_code int not null default 1
 );
 
 #index
-CREATE INDEX IDX_CREATEAT ON EVENT_TB(createdAt);
-CREATE INDEX IDX_TYPE ON EVENT_TB(type, user_id, place_id);
+CREATE INDEX IDX_EVENT_01 ON EVENT_TB(createdAt);
+CREATE INDEX IDX_EVENT_02 ON EVENT_TB(type, user_id, place_id);
+CREATE INDEX IDX_EVENT_03 ON EVENT_TB(user_id, review_id);
+CREATE INDEX IDX_REVIEW_01 ON REVIEW_TB(user_id, place_id);
 
 #Foreign Key
 ALTER TABLE EVENT_TB ADD CONSTRAINT EVENT_USER_ID_FK FOREIGN KEY (user_id) REFERENCES USER_TB (user_id) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -144,3 +148,16 @@ where type = "REVIEW" and user_id = "test user2" and place_id = "test place"
 where max is not null;
 ~~~
 
+
+
+## TEST
+
+1. ADD시 없는 유저를 이벤트로 받으면 validation 되는지 확인
+2. 없는 리뷰를 이벤트로 받으면 validation 되는지 확인
+3. 유저도 있고 리뷰도 있지만 서로 맞지 않을 때 validation 되는지 확인
+4. 최초리뷰시 보너스 점수 받는지 확인
+5. 유저2가 리뷰를 추가하고 유저1이 두번 째 리뷰시 보너스 점수 받지 않는지 확인
+6. 유저2가 리뷰를 추가하고 삭제한 후에 유저1이 리뷰 작성하면 최초리뷰 보너스 받는지 확인
+7. 유저2가 리뷰를 추가하고 유저1이 리뷰 추가한 후에 유저2가 리뷰 삭제하면 최초리뷰 보너스 유저1이 받지 않는지 확인
+8. 유저1이 포토 보너스 받은 후에 포토 지우면 포토 점수 회수하는지 확인
+9. 유저2가 포토없다가 포토 추가하면 점수 받는지 확인

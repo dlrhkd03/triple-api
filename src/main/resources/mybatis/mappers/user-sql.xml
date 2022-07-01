@@ -11,16 +11,22 @@
         where user_id = #{user_id};
     </select>
 
+    <select id="selectPoint" resultType="int">
+        select point
+        from mileage.USER_TB
+        where user_id = #{user_id};
+    </select>
+
     <update id="updatePoint" parameterType="user">
         update mileage.USER_TB
         set point=#{point}
         where user_id = #{user_id}
     </update>
 
-    <insert id="createUser" parameterType="user">
+    <insert id="createUser" parameterType="String">
         insert into mileage.USER_TB
-            (user_id, point)
-        VALUES (#{user_id}, #{point})
+            (user_id)
+        VALUES (#{user_id})
     </insert>
 
     <delete id="deleteUser" parameterType="String">

@@ -3,12 +3,10 @@ package com.triple.travelers.event.service.logic;
 import com.triple.travelers.event.dao.ReviewDao;
 import com.triple.travelers.event.dao.ReviewEventDao;
 import com.triple.travelers.event.dao.UserDao;
-import com.triple.travelers.event.exception.EventErrorCode;
-import com.triple.travelers.event.exception.EventException;
+import com.triple.travelers.event.dto.EventDto;
 import com.triple.travelers.event.exception.ReviewException;
 import com.triple.travelers.event.vo.Event;
 import com.triple.travelers.event.vo.Review;
-import com.triple.travelers.event.vo.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,41 +36,39 @@ class ReviewEventServiceLogicTest {
 
     @BeforeEach
     void before() {
-        //유저1, 유저2 생성
-        userDao.createUser(User.builder()
-                .user_id("test user1")
-                .point(0)
-                .build());
-        userDao.createUser(User.builder()
-                .user_id("test user2")
-                .point(0)
-                .build());
-
 
     }
 
+    private final Review review1 = Review.builder()
+            .review_id("test reviewId1")
+            .place_id("test placeId")
+            .user_id("test user1")
+            .build();
+
+    private final Review review2 = Review.builder()
+            .review_id("test reviewId2")
+            .place_id("test placeId")
+            .user_id("test user2")
+            .build();
+
     //리뷰가 작성된걸 확인하기 위한 생성
-    //실제론 이 api에서 생성되는 것이 아님
+    //실제론 이 api 에서 생성되는 것이 아님
     //리뷰1 생성메서드
     public void createReview1() {
-        reviewDao.insertReview(
-                Review.builder()
-                        .review_id("test reviewId1")
-                        .place_id("test placeId")
-                        .user_id("test user1")
-                        .build()
-        );
+        if (reviewDao.selectAllStatusReviewById(review1.getReview_id()) != null) {
+            reviewDao.recoverReview(review1);
+        } else {
+            reviewDao.insertReview(review1);
+        }
     }
 
     //리뷰2 생성메서드
     public void createReview2() {
-        reviewDao.insertReview(
-                Review.builder()
-                        .review_id("test reviewId2")
-                        .place_id("test placeId")
-                        .user_id("test user2")
-                        .build()
-        );
+        if (reviewDao.selectAllStatusReviewById(review2.getReview_id()) != null) {
+            reviewDao.recoverReview(review2);
+        } else {
+            reviewDao.insertReview(review2);
+        }
     }
 
     @AfterEach
@@ -80,9 +76,7 @@ class ReviewEventServiceLogicTest {
         userDao.deleteUser("test user1");
         userDao.deleteUser("test user2");
         reviewDao.deleteReview("test reviewId1");
-        if (reviewDao.selectReviewById("test reviewId2") != null) {
-            reviewDao.deleteReview("test reviewId2");
-        }
+        reviewDao.deleteReview("test reviewId2");
         if (reviewEventDao.selectEvent("test user1", "test reviewId1") != null) {
             reviewEventDao.deleteEvent("test user1", "test reviewId1");
         }
@@ -92,95 +86,79 @@ class ReviewEventServiceLogicTest {
     }
 
     //photo 2개 넣은 user1
-    private final Event requestADD1 = Event.builder()
+    private final EventDto requestADD1 = EventDto.builder()
             .type("REVIEW")
             .action("ADD")
-            .review_id("test reviewId1")
+            .reviewId("test reviewId1")
             .content("test")
-            .photo_url("test photo1, test photo2")
-            .user_id("test user1")
-            .place_id("test placeId")
+            .attachedPhotoIds(new String[]{"test photo1", "test photo2"})
+            .userId("test user1")
+            .placeId("test placeId")
             .build();
 
     //photo 없는 user2
-    private final Event requestADD2 = Event.builder()
+    private final EventDto requestADD2 = EventDto.builder()
             .type("REVIEW")
             .action("ADD")
-            .review_id("test reviewId2")
+            .reviewId("test reviewId2")
             .content("test")
-            .user_id("test user2")
-            .place_id("test placeId")
+            .attachedPhotoIds(new String[]{})
+            .userId("test user2")
+            .placeId("test placeId")
             .build();
 
     //photo 지운 user1
-    private final Event requestMOD1 = Event.builder()
+    private final EventDto requestMOD1 = EventDto.builder()
             .type("REVIEW")
             .action("MOD")
-            .review_id("test reviewId1")
+            .reviewId("test reviewId1")
             .content("test")
-            .user_id("test user1")
-            .place_id("test placeId")
+            .attachedPhotoIds(new String[]{})
+            .userId("test user1")
+            .placeId("test placeId")
             .build();
 
     //photo 넣은 user2
-    private final Event requestMOD2 = Event.builder()
+    private final EventDto requestMOD2 = EventDto.builder()
             .type("REVIEW")
             .action("ADD")
-            .review_id("test reviewId2")
+            .reviewId("test reviewId2")
             .content("test")
-            .photo_url("test photo1")
-            .user_id("test user2")
-            .place_id("test placeId")
+            .attachedPhotoIds(new String[]{"test photo1"})
+            .userId("test user2")
+            .placeId("test placeId")
             .build();
 
-    //photo 지운 user1
-    private final Event requestMOD3 = Event.builder()
-            .type("REVIEW")
-            .action("MOD")
-            .review_id("test reviewId1")
-            .content("test")
-            .photo_url("test photo1")
-            .user_id("test user1")
-            .place_id("test placeId")
-            .build();
-
-    //리뷰 삭제한 user1
-    private final Event requestDEL1 = Event.builder()
+    //유저2 삭제
+    private final EventDto requestDEL2 = EventDto.builder()
             .type("REVIEW")
             .action("DELETE")
-            .review_id("test reviewId1")
+            .reviewId("test reviewId2")
             .content("")
-            .user_id("test user1")
-            .place_id("test placeId")
-            .build();
-
-    private final Event requestDEL2 = Event.builder()
-            .type("REVIEW")
-            .action("DELETE")
-            .review_id("test reviewId2")
-            .content("")
-            .user_id("test user2")
-            .place_id("test placeId")
+            .attachedPhotoIds(new String[]{})
+            .userId("test user2")
+            .placeId("test placeId")
             .build();
 
     @Test
-    @DisplayName("ADD시 없는 유저를 이벤트로 받으면 validation 되는지 확인")
+    @DisplayName("없는 유저를 이벤트로 받으면 validation 되는지 확인")
     void validationTest1() {
         //given
         createReview1();
 
         //when
-        EventException eventException = assertThrows(EventException.class,
-                () -> reviewEventServiceLogic.add(Event.builder()
+        ReviewException reviewException = assertThrows(ReviewException.class,
+                () -> reviewEventServiceLogic.add(EventDto.builder()
                         .type("REVIEW")
                         .action("ADD")
-                        .review_id("test reviewId1")
+                        .reviewId("test reviewId1")
                         .content("test")
-                        .user_id("test user")
-                        .place_id("test placeId")
+                        .userId("test user")
+                        .placeId("test placeId")
                         .build()));
         //then
-        assertEquals(EventErrorCode.NO_USER, eventException.getEventErrorCode());
+
+        assertEquals(USER_ID_REVIEW_ID_NOT_MATCHED, reviewException.getReviewErrorCode());
     }
 
     @Test
@@ -191,13 +169,13 @@ class ReviewEventServiceLogicTest {
 
         //when
         ReviewException reviewException = assertThrows(ReviewException.class,
-                () -> reviewEventServiceLogic.add(Event.builder()
+                () -> reviewEventServiceLogic.add(EventDto.builder()
                         .type("REVIEW")
                         .action("ADD")
-                        .review_id("test reviewId")
+                        .reviewId("test reviewId")
                         .content("test")
-                        .user_id("test user1")
-                        .place_id("test placeId")
+                        .userId("test user1")
+                        .placeId("test placeId")
                         .build()));
 
         //then
@@ -212,13 +190,13 @@ class ReviewEventServiceLogicTest {
 
         //when
         ReviewException notMatchedException = assertThrows(ReviewException.class,
-                () -> reviewEventServiceLogic.add(Event.builder()
+                () -> reviewEventServiceLogic.add(EventDto.builder()
                         .type("REVIEW")
                         .action("ADD")
-                        .review_id("test reviewId1")
+                        .reviewId("test reviewId1")
                         .content("test")
-                        .user_id("test user2")
-                        .place_id("test placeId")
+                        .userId("test user2")
+                        .placeId("test placeId")
                         .build()));
 
         //then
@@ -240,13 +218,14 @@ class ReviewEventServiceLogicTest {
 
     @Test
     @DisplayName("최초리뷰가 아닐시 보너스 점수 받지 않는지 확인")
-    void bonusPointTest2() {
+    void bonusPointTest2() throws InterruptedException {
         // Given
         createReview1();
         reviewEventServiceLogic.add(requestADD1);
         createReview2();
         // When
-        reviewEventServiceLogic.add(requestADD2);
+
+        Thread.sleep(1000);
         Event event = reviewEventServiceLogic.add(requestADD2);
         // Then
         // 리뷰2의 보너스포인트는 0이다.
@@ -255,12 +234,14 @@ class ReviewEventServiceLogicTest {
 
     @Test
     @DisplayName("유저2가 리뷰를 추가하고 삭제한 후에 유저1이 리뷰 작성하면 최초리뷰 보너스를 받는지 확인")
-    void bonusPointTest3() {
+    void bonusPointTest3() throws InterruptedException {
         // Given
         // When
         createReview2();
         reviewEventServiceLogic.add(requestADD2);
-        reviewDao.deleteReview(requestADD2.getReview_id());
+
+        Thread.sleep(1000);
+        reviewDao.deleteReview(requestADD2.getReviewId());
         reviewEventServiceLogic.delete(requestDEL2);
 
         createReview1();
@@ -271,20 +252,24 @@ class ReviewEventServiceLogicTest {
 
     @Test
     @DisplayName("유저2가 리뷰를 추가하고 유저1이 리뷰 추가한 후에 유저2가 리뷰 삭제하면 최초리뷰 보너스 유저1이 받지 않는지 확인")
-    void bonusPointTest4() {
+    void bonusPointTest4() throws InterruptedException {
         // Given
         // When
         createReview2();
         reviewEventServiceLogic.add(requestADD2);
+
+        Thread.sleep(1000);
         createReview1();
         reviewEventServiceLogic.add(requestADD1);
-        int user1_before_point = userDao.selectUser(requestADD1.getUser_id()).getPoint();
+        int user1_before_point = userDao.selectUser(requestADD1.getUserId()).getPoint();
 
-        reviewDao.deleteReview(requestADD2.getReview_id());
+        Thread.sleep(1000);
+        reviewDao.deleteReview(requestADD2.getReviewId());
         reviewEventServiceLogic.delete(requestDEL2);
 
-        int user1_after_point = userDao.selectUser(requestADD1.getUser_id()).getPoint();
+        int user1_after_point = userDao.selectUser(requestADD1.getUserId()).getPoint();
         // Then
+        //유저1의 총 포인트 변화 X
         assertEquals(user1_after_point - user1_before_point, 0);
     }
 
@@ -293,8 +278,7 @@ class ReviewEventServiceLogicTest {
     void retrieveTest1() throws InterruptedException {
         // Given
         // When
-        String user_id = requestADD1.getUser_id();
-        String review_id = requestADD1.getReview_id();
+        String user_id = requestADD1.getUserId();
 
         createReview1();
         reviewEventServiceLogic.add(requestADD1);
@@ -316,8 +300,7 @@ class ReviewEventServiceLogicTest {
     void retrieveTest2() throws InterruptedException {
         // Given
         // When
-        String user_id = requestADD2.getUser_id();
-        String review_id = requestADD2.getReview_id();
+        String user_id = requestADD2.getUserId();
 
         createReview2();
         reviewEventServiceLogic.add(requestADD2);

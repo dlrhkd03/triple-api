@@ -11,22 +11,31 @@
           and review_id = #{review_id}
     </select>
 
+    <select id="selectEventAdd" resultType="event">
+        select *
+        from EVENT_TB
+        where user_id = #{user_id}
+          and review_id = #{review_id}
+          and action = "ADD"
+            limit 1
+    </select>
+
     <insert id="insertEvent" parameterType="event">
-        insert into EVENT_TB (type, action, review_id, content, photo_url, user_id, place_id, bonus_point,
+        insert into EVENT_TB (type, action, review_id, content, photo_ids, user_id, place_id, bonus_point,
                               content_point, photo_point)
-        values (#{type}, #{action}, #{review_id}, #{content}, #{photo_url}, #{user_id}, #{place_id}, #{bonus_point},
+        values (#{type}, #{action}, #{review_id}, #{content}, #{photo_ids}, #{user_id}, #{place_id}, #{bonus_point},
                 #{content_point}, #{photo_point})
     </insert>
 
-    <select id="selectRecentEvent" resultType="event" parameterType="event">
+    <select id="selectRecentEvent" resultType="event" parameterType="eventDto">
         select *
         from EVENT_TB e1
                  left join (
             select max(createdAt) max
             from EVENT_TB
             where type = #{type}
-              and user_id = #{user_id}
-              and place_id = #{place_id}
+              and user_id = #{userId}
+              and place_id = #{placeId}
         ) e2 on max = e1.createdAt
         where max is not null
     </select>

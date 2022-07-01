@@ -15,7 +15,7 @@ public class Event {
     private String action;
     private String review_id;
     private String content;
-    private String photo_url;
+    private String photo_ids;
     private String user_id;
     private String place_id;
     private int bonus_point;

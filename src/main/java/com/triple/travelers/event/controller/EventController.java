@@ -1,5 +1,6 @@
 package com.triple.travelers.event.controller;
 
+import com.triple.travelers.event.dto.EventDto;
 import com.triple.travelers.event.exception.EventException;
 import com.triple.travelers.event.service.logic.ReviewEventServiceLogic;
 import com.triple.travelers.event.service.logic.UserServiceLogic;
@@ -30,7 +31,7 @@ public class EventController {
 
     @PostMapping("/events")
     public Event OccurredEvent(
-            @RequestBody com.triple.travelers.event.vo.Event request
+            @RequestBody EventDto request
     ) {
         log.info("event occur type:{} action:{}", request.getType(), request.getAction());
 
@@ -43,7 +44,7 @@ public class EventController {
         }
     }
 
-    public Event responseReviewEvent(com.triple.travelers.event.vo.Event request) {
+    public Event responseReviewEvent(EventDto request) {
         switch (request.getAction()) {
             case "ADD":
                 return reviewEventService.add(request);

@@ -1,6 +1,8 @@
 package com.triple.travelers.event.service.logic;
 
 import com.triple.travelers.event.dao.UserDao;
+import com.triple.travelers.event.exception.EventErrorCode;
+import com.triple.travelers.event.exception.EventException;
 import com.triple.travelers.event.vo.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -8,9 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 class UserServiceLogicTest {
@@ -20,68 +21,87 @@ class UserServiceLogicTest {
     private UserServiceLogic userService;
 
     private final String defaultId = "a62bac06-86ba-4ab6-b467-a01b60e6b66a";
-    private final int defaultPoint = 10;
-    private final User defaultUser = User.builder()
-            .user_id(defaultId)
-            .point(defaultPoint)
-            .build();
 
-    /*@AfterEach
+    @AfterEach
     void after() {
-        userService.deleteUser(defaultId);
-    }*/
+        if(userDao.selectUser(defaultId) != null) userService.deleteUser(defaultId);
+    }
 
-    @DisplayName("디폴트 유저 생성")
+    @DisplayName("디폴트 유저 생성 후 조회")
     @Test
-    void creatTest() {
+    void createUserTest() {
         //when
-        userService.createUser(defaultUser);
+        userService.addUser(defaultId);
         User user = userService.getUser(defaultId);
         //then
         assertEquals(user.getUser_id(), defaultId);
-        assertEquals(user.getPoint(), defaultPoint);
+        assertEquals(user.getPoint(), 0);
     }
 
-    @DisplayName("유저 포인트 조회")
+    @DisplayName("디폴트 유저 생성 후 동일한 유저 생성")
     @Test
-    void retrieveTest() {
-        // Given
+    void createUserTest_failed_with_duplicated_user() {
+        //when
+        userService.addUser(defaultId);
+        EventException eventException = assertThrows(EventException.class,
+                () -> userService.addUser(defaultId));
+        //then
+        assertEquals(EventErrorCode.DUPLICATED_USER, eventException.getEventErrorCode());
+    }
 
-        // When
-        User user = userService.getUser(defaultId);
-        // Then
-        assertEquals(user.getUser_id(), defaultId);
-        assertEquals(user.getPoint(), defaultPoint);
+    @DisplayName("존재하지 않는 유저 포인트 조회")
+    @Test
+    void retrievePointTest_failed_with_not_existed_user() {
+        //when
+        EventException eventException = assertThrows(EventException.class,
+                () -> userService.getPoint(defaultId));
+        //then
+        assertEquals(EventErrorCode.NO_USER, eventException.getEventErrorCode());
     }
 
     @DisplayName("유저 포인트 변경")
     @Test
     void updatePointTest() {
         // Given
+        userService.addUser(defaultId);
         User user = userService.getUser(defaultId);
         int plusPoint = 1;
         // When
-        int userPoint = user.getPoint();
-        user.setPoint(userPoint + plusPoint);
-        userService.updatePoint(user);
+        //포인트 0 -> 1
+        int beforeUserPoint1 = user.getPoint();
+        user.setPoint(beforeUserPoint1 + plusPoint);
+        userService.changePoint(user);
+        int afterUserPoint1 = userService.getUser(defaultId).getPoint();
+
+        //포인트 1 -> 2
+        int beforeUserPoint2 = user.getPoint();
+        user.setPoint(beforeUserPoint2 + plusPoint);
+        userService.changePoint(user);
+        int afterUserPoint2 = userService.getUser(defaultId).getPoint();
 
         // Then
-        assertEquals(userService.getUser(defaultId).getPoint(),
-                userPoint+plusPoint);
-
+        assertEquals(afterUserPoint1, 1);
+        assertEquals(afterUserPoint2, 2);
 
 
         // Given
         user = userService.getUser(defaultId);
-        int minusPoint = -2;
+        int minusPoint = -1;
         // When
-        userPoint = user.getPoint();
-        user.setPoint(userPoint + minusPoint);
-        userService.updatePoint(user);
+        //포인트 2 -> 1
+        int beforeUserPoint3 = user.getPoint();
+        user.setPoint(beforeUserPoint3 + minusPoint);
+        userService.changePoint(user);
+        int afterUserPoint3 = userService.getUser(defaultId).getPoint();
+
+        //포인트 1 -> 0
+        int beforeUserPoint4 = user.getPoint();
+        user.setPoint(beforeUserPoint4 + minusPoint);
+        userService.changePoint(user);
+        int afterUserPoint4 = userService.getUser(defaultId).getPoint();
 
         // Then
-        assertEquals(userService.getUser(defaultId).getPoint(),
-                userPoint+minusPoint);
-
+        assertEquals(afterUserPoint3, 1);
+        assertEquals(afterUserPoint4, 0);
     }
 }

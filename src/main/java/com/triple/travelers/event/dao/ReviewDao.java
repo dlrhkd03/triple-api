@@ -4,8 +4,6 @@ import com.triple.travelers.event.vo.Review;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
 @Mapper
 public interface ReviewDao {
@@ -15,5 +13,9 @@ public interface ReviewDao {
 
     Review selectReviewById(String review_id);
 
+    void recoverReview(Review review);
+
     void deleteReview(String review_id);
+
+    Review selectAllStatusReviewById(String review_id);
 }

@@ -4,6 +4,83 @@
 
 
 
+## 작동 방법
+
+1. DB 환경 설정
+
+   application.properties에 데이터소스 환경설정 작성되어있습니다.
+
+    ```properties
+    #database
+    spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+    spring.datasource.url=jdbc:mysql://127.0.0.1:3306/mileage
+    spring.datasource.username=triple
+    spring.datasource.password=12345678
+    ```
+   
+2. DDL 작성
+
+   ~~~sql
+   DROP TABLE IF EXISTS EVENT_TB CASCADE;
+   DROP TABLE IF EXISTS REVIEW_TB CASCADE;
+   DROP TABLE IF EXISTS USER_TB CASCADE;
+   
+   #USER_TB
+   CREATE TABLE USER_TB (
+   	user_id VARCHAR(36) PRIMARY KEY,
+     point int NOT NULL DEFAULT 0
+   );
+   #EVENT_TB
+   CREATE TABLE EVENT_TB (
+     id bigint primary key auto_increment,
+     type varchar(20) NOT NULL,
+     action varchar(20) NOT NULL,
+   	review_id VARCHAR(36) NOT NULL,
+     content VARCHAR(2000) NOT NULL,
+     photo_ids VARCHAR(2000),
+     user_id VARCHAR(36) NOT NULL,
+     place_id VARCHAR(36) NOT NULL,
+     bonus_point int NOT NULL DEFAULT 0,
+     content_point int NOT NULL DEFAULT 0,
+     photo_point int NOT NULL DEFAULT 0,
+     createdAt datetime NOT NULL DEFAULT NOW()
+   );
+   
+   #REVIEW_TB
+   CREATE TABLE REVIEW_TB (
+   	review_id varchar(36) primary key,
+     user_id varchar(36) not null,
+     place_id varchar(36) not null,
+     status_code int not null default 1
+   );
+   
+   #index
+   CREATE INDEX IDX_EVENT_01 ON EVENT_TB(createdAt);
+   CREATE INDEX IDX_EVENT_02 ON EVENT_TB(type, user_id, place_id);
+   CREATE INDEX IDX_EVENT_03 ON EVENT_TB(user_id, review_id);
+   CREATE INDEX IDX_REVIEW_01 ON REVIEW_TB(user_id, place_id);
+   
+   #Foreign Key
+   ALTER TABLE EVENT_TB ADD CONSTRAINT EVENT_USER_ID_FK FOREIGN KEY (user_id) REFERENCES USER_TB (user_id) ON DELETE CASCADE ON UPDATE CASCADE;
+   ALTER TABLE EVENT_TB ADD CONSTRAINT EVENT_REVIEW_ID_FK FOREIGN KEY (review_id) REFERENCES REVIEW_TB (review_id) ON DELETE CASCADE ON UPDATE CASCADE;
+   
+   #내가 만든 사용자 테이블은 기존 사용자 테이블과 다른 테이블
+   #이곳의 user_id 외래키는 기존 사용자 테이블에서 가져와야함
+   #ALTER TABLE REVIEW_TB ADD CONSTRAINT REVIEW_USER_ID_FK FOREIGN KEY (user_id) REFERENCES 기존유저테이블 (user_id) ON DELETE CASCADE ON UPDATE CASCADE;
+   
+   #장소 테이블이 없어서 처리
+   #ALTER TABLE EVENT_TB ADD CONSTRAINT EVENT_PLACE_ID_FK FOREIGN KEY (place_id) REFERENCES PLACE_TB (place_id) ON DELETE CASCADE ON UPDATE CASCADE;
+   ~~~
+
+   
+
+3. 테스트 코드 작동
+
+* 서비스 테스트 코드는 
+  * test/java/com/triple/travelers/event/service/logic 이곳에 위치해있습니다.
+* http 테스트 요청은
+  * test/http 이곳에 위치해있습니다.
+
 
 
 ## DB
@@ -22,21 +99,25 @@ spring.datasource.password=12345678
 
 전체적인 프로세서 구상
 API 작성시 필요한 DB는 사용자테이블, 리뷰이벤트테이블, 
-리뷰테이블**(이미 만들어진 리뷰테이블 사용할 예정이지만, 직관적으로 테스트하기위해 간단한 리뷰테이블 생성)**
+리뷰테이블**(이미 어딘가에서 만들어진 리뷰테이블 사용하는 DB지만, api 테스트를 하는데에 있어 직관적으로 테스트하기위해 간단한 리뷰테이블 생성)**
+여기서 만드는 사용자 테이블은 회원 정보를 가지고 있던 사용자 테이블과 서로 다른 테이블**(포인트 저장을 위해 만든 테이블)**
 
 * 이벤트DB 구성을 작성
 
-| 컬럼             | 내용                                                         |
-| ---------------- | ------------------------------------------------------------ |
-| id               | auto increment되는 PK가 필요                                 |
-| type             | 어떤 이벤트인지 파악하는 컬럼                                |
-| action           | 리뷰가 새로 작성이 되었는지, 수정이 되었는지, 삭제가 되엇는지 파악하는 컬럼 |
-| reviewId         | 작성된 리뷰의 PK                                             |
-| content          | 작성된 리뷰의 내용                                           |
-| attachedPhotoIds | 사진 테이블에서 사진 URL을 가져오기 위한 사진 테이블의 PK    |
-| userId           | 작성한 유저의 PK                                             |
-| placeId          | 작성된 장소의 PK                                             |
-| created_at       | 발생된 이벤트 시간                                           |
+| 컬럼          | 내용                                                         |
+| ------------- | ------------------------------------------------------------ |
+| id            | auto increment되는 PK가 필요                                 |
+| type          | 어떤 이벤트인지 파악하는 컬럼                                |
+| action        | 리뷰가 새로 작성이 되었는지, 수정이 되었는지, 삭제가 되엇는지 파악하는 컬럼 |
+| reviewId      | 작성된 리뷰의 PK                                             |
+| content       | 작성된 리뷰의 내용                                           |
+| photoIds      | 사진 테이블에서 사진 URL을 가져오기 위한 사진 테이블의 PK    |
+| userId        | 작성한 유저의 PK                                             |
+| placeId       | 작성된 장소의 PK                                             |
+| bonus_point   | 최초리뷰 포인트                                              |
+| content_point | 내용 포인트                                                  |
+| photo_point   | 사진 포인트                                                  |
+| created_at    | 발생된 이벤트 시간                                           |
 
 
 
@@ -50,8 +131,8 @@ API 작성시 필요한 DB는 사용자테이블, 리뷰이벤트테이블,
 
 리뷰 이벤트 릴레이션
 
-| <u>id</u> | type | action | review_id | content | attachedPhotoIds | user_id | place_id |
-| --------- | ---- | ------ | --------- | ------- | ---------------- | ------- | -------- |
+| <u>id</u> | type | action | review_id | content | photo_ids | user_id | place_id |
+| --------- | ---- | ------ | --------- | ------- | --------- | ------- | -------- |
 
 유저 릴레이션
 
@@ -79,7 +160,7 @@ CREATE TABLE EVENT_TB (
   action varchar(20) NOT NULL,
 	review_id VARCHAR(36) NOT NULL,
   content VARCHAR(2000) NOT NULL,
-  photo_url VARCHAR(2000),
+  photo_ids VARCHAR(2000),
   user_id VARCHAR(36) NOT NULL,
   place_id VARCHAR(36) NOT NULL,
   bonus_point int NOT NULL DEFAULT 0,
@@ -105,13 +186,22 @@ CREATE INDEX IDX_REVIEW_01 ON REVIEW_TB(user_id, place_id);
 #Foreign Key
 ALTER TABLE EVENT_TB ADD CONSTRAINT EVENT_USER_ID_FK FOREIGN KEY (user_id) REFERENCES USER_TB (user_id) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE EVENT_TB ADD CONSTRAINT EVENT_REVIEW_ID_FK FOREIGN KEY (review_id) REFERENCES REVIEW_TB (review_id) ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE REVIEW_TB ADD CONSTRAINT REVIEW_USER_ID_FK FOREIGN KEY (user_id) REFERENCES USER_TB (user_id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+#내가 만든 사용자 테이블은 기존 사용자 테이블과 다른 테이블
+#이곳의 user_id 외래키는 기존 사용자 테이블에서 가져와야함
+#ALTER TABLE REVIEW_TB ADD CONSTRAINT REVIEW_USER_ID_FK FOREIGN KEY (user_id) REFERENCES 기존유저테이블 (user_id) ON DELETE CASCADE ON UPDATE CASCADE;
+
+#장소 테이블이 없어서 처리
 #ALTER TABLE EVENT_TB ADD CONSTRAINT EVENT_PLACE_ID_FK FOREIGN KEY (place_id) REFERENCES PLACE_TB (place_id) ON DELETE CASCADE ON UPDATE CASCADE;
 ~~~
 
 
 
 ## 로직 설계
+
+1. 유저가 리뷰 작성하면 이벤트가 발생
+2. 유저 포인트를 저장하는 DB 생성
+3. 이벤트 생성
 
 ADD
 
@@ -151,6 +241,8 @@ where max is not null;
 
 
 ## TEST
+
+**EventServiceLogicTest**
 
 1. ADD시 없는 유저를 이벤트로 받으면 validation 되는지 확인
 2. 없는 리뷰를 이벤트로 받으면 validation 되는지 확인
